@@ -11,7 +11,7 @@ author: [Guillermo Rauch](http://devthought.com)
 var sys = require('sys'),
     http = require('http'),
     
-    booleanCommands = ['STAT', 'CLIENT_INFO', 'HOST_INFO', 'SERVER_VERSION', 'CLIENT_VERSION'],
+    booleanCommands = ['STAT', 'CLIENT_INFO', 'HOST_INFO', 'SERVER_VERSION', 'CLIENT_VERSION'];
 
 Server = this.Server = function(host, port, timeout){
   this.host = host || 'localhost';
@@ -19,44 +19,49 @@ Server = this.Server = function(host, port, timeout){
   this.timeout = timeout;
 };
 
-Server.prototype.fetch = function(object, key){
+Server.prototype.fetch = function(object, key, fn){
   var connection = http.createClient(this.port, this.host),
-      request = connection[connection.get ? 'get' : 'request']('/db?' + escape(JSON.stringify(object)), {'host': this.host}),
-      promise = new process.Promise();
-  
-  promise.timeout(this.timeout);
+      request = connection.request('/db?' + escape(JSON.stringify(object)));
 
-  request.finish(function(response){
-    response.addListener('body', function(data){  
+  request.addListener('response', function(response){
+  	var data = '';
+  	
+    response.setBodyEncoding("utf8");
+  	  
+  	response.addListener('data', function(chunk){ 
+  	  data += chunk; 
+  	});
+
+    response.addListener('end', function(){
       try {
         var object = JSON.parse(data);
       } catch(e){
-        return promise.emitError(e);
-      }      
+        fn(e)
+      }
       
       if (object.MYSQL_ERROR !== undefined){
-        promise.emitError(object.MYSQL_ERROR, object.MYSQL_ERRNO);
+      	fn(object);
       } else if (object.ERROR !== undefined){
-        promise.emitError(object.ERROR);
+        fn(object);
       } else {
-        promise.emitSuccess(key ? object[key] : object);
-      }      
+      	fn(null,key ? object[key] : object);
+      }          
     });
   });
   
-  return promise;
+  request.close();
 };
 
-Server.prototype.query = function(query){
-  return this.fetch({SQL: query}, 'RESULT');
+Server.prototype.query = function(query, fn){
+  this.fetch({SQL: query}, 'RESULT', fn);
 };
 
 for (var i = 0, l = booleanCommands.length; i < l; i++){
   Server.prototype[booleanCommands[i].toLowerCase()] = (function(command){
-    return function(){
+    return function(fn){
       var obj = {};
       obj[command] = true;
-      return this.fetch(obj, command);
+      this.fetch(obj, command, fn);
     };
   })(booleanCommands[i]);
 }
