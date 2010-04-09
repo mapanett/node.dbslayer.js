@@ -28,16 +28,16 @@ Initialize a connection
 	
 and then perform a query:
 
-	connection.query("SELECT * FROM table", function(error,result){
-		if( error ) { 
-			alert('mysql error! + ' error);
-			return;
+	connection.query("use mysql;select name from help_topic;", function(error, result){
+		if (error) { 
+			res.write('mysql error: ' + error);
+		} else {
+			var rows = result[1].ROWS;
+			rows.forEach(function(row){
+				res.write(row[0]+'\n');
+			});
 		}
-		
-		for (var i = 0, l = result.ROWS.length; i < l; i++){
-			var row = result.ROWS[i];
-			// do something with the data
-		} 
+		res.close();
 	});
 	
 The last argument to the query function is a callback. The query result or an error, if one occcurred, is returned in the parameters to the provided function.
