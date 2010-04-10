@@ -1,67 +1,124 @@
-/*
----
-name: dbslayer.js
-
-description: Interface to DBSlayer for Node.JS
-
-author: [Guillermo Rauch](http://devthought.com)
-...
-*/
+//  dbslayer.js 1.0d1
+//      Copyright (c) 2010 Jonathan 'Wolf' Rentzsch: <http://rentzsch.com>
+//      Some rights reserved: <http://opensource.org/licenses/mit-license.php>
+//      
+//  Interface to DBSlayer for node.js.
+//	Original codebase by [Guillermo Rauch](http://devthought.com)
 
 var sys = require('sys'),
-    http = require('http'),
-    
-    booleanCommands = ['STAT', 'CLIENT_INFO', 'HOST_INFO', 'SERVER_VERSION', 'CLIENT_VERSION'];
+	http = require('http');
 
-Server = this.Server = function(host, port, timeout){
-  this.host = host || 'localhost';
-  this.port = port || 9090;
-  this.timeout = timeout;
-};
-
-Server.prototype.fetch = function(object, key, fn){
-  var connection = http.createClient(this.port, this.host),
-      request = connection.request('/db?' + escape(JSON.stringify(object)));
-
-  request.addListener('response', function(response){
-  	var data = '';
-  	
-    response.setBodyEncoding("utf8");
-  	  
-  	response.addListener('data', function(chunk){ 
-  	  data += chunk; 
-  	});
-
-    response.addListener('end', function(){
-      try {
-        var object = JSON.parse(data);
-      } catch(e){
-        fn(e)
-      }
-      
-      if (object.MYSQL_ERROR !== undefined){
-      	fn(object);
-      } else if (object.ERROR !== undefined){
-        fn(object);
-      } else {
-      	fn(null,key ? object[key] : object);
-      }          
-    });
-  });
-  
-  request.close();
-};
-
-Server.prototype.query = function(query, fn){
-  this.fetch({SQL: query}, 'RESULT', fn);
-};
-
-for (var i = 0, l = booleanCommands.length; i < l; i++){
-  Server.prototype[booleanCommands[i].toLowerCase()] = (function(command){
-    return function(fn){
-      var obj = {};
-      obj[command] = true;
-      this.fetch(obj, command, fn);
-    };
-  })(booleanCommands[i]);
+function DBSlayerConnection(opts) {
+	this.host = opts['host'] || 'localhost';
+	this.port = opts['port'] || 9090;
+	this.db = opts['db'];
+	this.timeout = opts['timeout'];
 }
+
+DBSlayerConnection.prototype.executeQuery = function(args) {
+	var opt = args[0],
+		callback = args[args.length-1];
+	
+	if (opt.select) {
+		var placeholderArgs = Array.prototype.slice.call(args, 1, -1);
+		this.executeSelect(opt.select, opt.from, opt.where, placeholderArgs, callback);
+	} else if (opt.insert) {
+		// TODO
+		verb = 'insert';
+	} else if (opt.update) {
+		// TODO
+		verb = 'update';
+	} else if (opt['delete']) {
+		// TODO
+		verb = 'delete';
+	} else {
+		sys.log('dbslayer.js: unknown verb (' + JSON.stringify(opt) + ')');
+	}
+}
+
+DBSlayerConnection.prototype.executeSelect = function(columns, tables, condition, placeholderArgs, callback) {
+	var generatedQuery = this.db ? 'use ' + this.db + ';' : '';
+	
+	generatedQuery += 'select ' + columns + ' from ' + tables;
+	
+	if (condition) {
+		// FIXME this will fail when a placeholderArg contains a question mark.
+		while (condition.indexOf('?') !== -1) {
+			condition = condition.replace(/\?/, "'" + addslashes(placeholderArgs.shift()) + "'");
+		}
+		generatedQuery += ' where ' + condition;
+	}
+	
+	generatedQuery += ';';
+	
+	this.fetch(generatedQuery, callback);
+	sys.log('^^generatedQuery: '+generatedQuery);
+}
+
+function addslashes(str) {
+	// Backslash-escape single quotes, double quotes and backslash. Morph 0x00 into \0.
+	return str.replace(/(['"\\])/g,'\\$1').replace(/\x00/g, '\\0');
+}
+
+DBSlayerConnection.prototype.fetch = function(queryString, callback) {
+	var queryRecord = {SQL:queryString},
+		queryJSON = JSON.stringify(queryRecord),
+		escapedQueryJSON = escape(queryJSON.replace(/ /g,"+")),
+		connection = http.createClient(this.port, this.host),
+		request = connection.request('/db?' + escapedQueryJSON),
+		dbconnection = this;
+	
+	request.addListener('response', function(response){
+		var data = '';
+		
+		response.setBodyEncoding("utf8");
+		
+		response.addListener('data', function(chunk){ 
+			data += chunk; 
+		});
+		
+		response.addListener('end', function(){
+			try {
+				var object = JSON.parse(data);
+			} catch(e){
+				callback(undefined, e)
+			}
+			
+			if (object.MYSQL_ERROR !== undefined){
+				callback(undefined, object);
+			} else if (object.ERROR !== undefined){
+				callback(undefined, object);
+			} else {
+				//sys.log('^^data: '+data);
+				dbconnection.callBackWithResults(
+					callback,
+					object.RESULT[1].HEADER,
+					object.RESULT[1].ROWS
+				);
+			}          
+		});
+	});
+	
+	request.close();
+}
+
+DBSlayerConnection.prototype.callBackWithResults = function(callback, headers, rows) {
+	var resultRows = [];
+	
+	rows.forEach(function(rowArray){
+		var resultRow = {};
+		headers.forEach(function(headerName, columnIndex){
+			resultRow[headerName] = rowArray[columnIndex];
+		});
+		resultRows.push(resultRow);
+	});
+	callback(resultRows);
+}
+
+exports.connect = function(opts) {
+	var connection = new DBSlayerConnection(opts),
+		result = function(){connection.executeQuery(arguments);};
+	
+	return result;
+}
+exports.DBSlayerConnection = DBSlayerConnection;
