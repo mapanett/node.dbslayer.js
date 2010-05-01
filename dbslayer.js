@@ -24,13 +24,10 @@ DBSlayerConnection.prototype.executeQuery = function(args) {
 		this.executeSelect(opt.select, opt.from, opt.where, placeholderArgs, callback);
 	} else if (opt.insert) {
 		// TODO
-		verb = 'insert';
 	} else if (opt.update) {
 		// TODO
-		verb = 'update';
 	} else if (opt['delete']) {
 		// TODO
-		verb = 'delete';
 	} else {
 		sys.log('dbslayer.js: unknown verb (' + JSON.stringify(opt) + ')');
 	}
@@ -52,7 +49,7 @@ DBSlayerConnection.prototype.executeSelect = function(columns, tables, condition
 	generatedQuery += ';';
 	
 	this.fetch(generatedQuery, callback);
-	sys.log('^^generatedQuery: '+generatedQuery);
+	//sys.log('^^generatedQuery: '+generatedQuery);
 }
 
 function addslashes(str) {
