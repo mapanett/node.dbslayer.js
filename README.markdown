@@ -51,11 +51,11 @@ I still need to add support for verbs like `insert`, `update` and `delete`. Pull
 			'WWW-Authenticate': 'Basic realm="'+path.basename(__filename)+'"'
 		});
 		this.write('401 Unauthorized');
-		this.close();
+		this.end();
 	};
 		
 	http.ServerResponse.prototype.writeJSON = function(object){
 		this.writeHead(200, {'Content-Type': 'application/json'});
 		this.write(JSON.stringify(object));
-		this.close();
+		this.end();
 	};

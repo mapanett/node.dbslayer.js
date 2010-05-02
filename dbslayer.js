@@ -96,7 +96,7 @@ DBSlayerConnection.prototype.fetch = function(queryString, callback) {
 		});
 	});
 	
-	request.close();
+	request.end();
 }
 
 DBSlayerConnection.prototype.callBackWithResults = function(callback, headers, rows) {
