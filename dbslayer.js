@@ -13,6 +13,12 @@ function DBSlayerConnection(opts) {
 	this.port = opts['port'] || 9090;
 	this.db = opts['db'];
 	this.timeout = opts['timeout'];
+	
+	this.fetch(
+		'SET character_set_results = utf8;'
+		+'SET character_set_client = utf8;'
+		+'SET character_set_connection = utf8;',
+		function(){});
 }
 
 DBSlayerConnection.prototype.executeQuery = function(args) {
@@ -102,13 +108,15 @@ DBSlayerConnection.prototype.fetch = function(queryString, callback) {
 DBSlayerConnection.prototype.callBackWithResults = function(callback, headers, rows) {
 	var resultRows = [];
 	
-	rows.forEach(function(rowArray){
-		var resultRow = {};
-		headers.forEach(function(headerName, columnIndex){
-			resultRow[headerName] = rowArray[columnIndex];
+	if (rows !== undefined) {
+		rows.forEach(function(rowArray){
+			var resultRow = {};
+			headers.forEach(function(headerName, columnIndex){
+				resultRow[headerName] = rowArray[columnIndex];
+			});
+			resultRows.push(resultRow);
 		});
-		resultRows.push(resultRow);
-	});
+	}
 	callback(resultRows);
 }
 
