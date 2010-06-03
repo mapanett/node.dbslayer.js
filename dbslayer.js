@@ -74,7 +74,7 @@ DBSlayerConnection.prototype.fetch = function(queryString, callback) {
 	request.addListener('response', function(response){
 		var data = '';
 		
-		response.setBodyEncoding("utf8");
+		response.setEncoding("utf8");
 		
 		response.addListener('data', function(chunk){ 
 			data += chunk; 
