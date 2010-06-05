@@ -71,6 +71,16 @@ DBSlayerConnection.prototype.fetch = function(queryString, callback) {
 		request = connection.request('/db?' + escapedQueryJSON),
 		dbconnection = this;
 	
+	connection.addListener('error', function(connectionException){
+		if (connectionException.errno === process.ECONNREFUSED) {
+			sys.log('ECONNREFUSED: dbslayer connection refused to '
+				+connection.host
+				+':'
+				+connection.port);
+		}
+		callback(undefined, connectionException);
+	});
+	
 	request.addListener('response', function(response){
 		var data = '';
 		
