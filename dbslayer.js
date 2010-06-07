@@ -23,13 +23,14 @@ function DBSlayerConnection(opts) {
 
 DBSlayerConnection.prototype.executeQuery = function(args) {
 	var opt = args[0],
-		callback = args[args.length-1];
+		callback = args[args.length-1],
+		placeholderArgs;
 	
 	if (opt.select) {
-		var placeholderArgs = Array.prototype.slice.call(args, 1, -1);
+		placeholderArgs = Array.prototype.slice.call(args, 1, -1);
 		this.executeSelect(opt.select, opt.from, opt.where, placeholderArgs, callback);
-	} else if (opt.insert) {
-		// TODO
+	} else if (opt.insert_into) {
+		this.executeInsert(opt.insert_into, opt.values, callback);
 	} else if (opt.update) {
 		// TODO
 	} else if (opt['delete']) {
@@ -56,6 +57,31 @@ DBSlayerConnection.prototype.executeSelect = function(columns, tables, condition
 	
 	this.fetch(generatedQuery, callback);
 	//sys.log('^^generatedQuery: '+generatedQuery);
+}
+
+DBSlayerConnection.prototype.executeInsert = function(insert_into, values, callback) {
+	var generatedQuery = this.db ? 'use ' + this.db + ';' : '',
+		columnNames = [],
+		rowValues = [];
+	
+	for (var columnName in values) {
+		if (values.hasOwnProperty(columnName)) {
+			columnNames.push(columnName);
+			rowValues.push(sqlstr(values[columnName]));
+		}
+	}
+	
+	generatedQuery
+		+= 'insert into '
+		+ insert_into
+		+ ' ('
+		+ columnNames.join(', ')
+		+ ') values ('
+		+ rowValues.join(', ')
+		+ ');';
+	
+	//sys.log('^^generatedQuery: '+generatedQuery);
+	this.fetch(generatedQuery, typeof callback === 'function' ? callback : function(){});
 }
 
 function addslashes(str) {
@@ -137,3 +163,32 @@ exports.connect = function(opts) {
 	return result;
 }
 exports.DBSlayerConnection = DBSlayerConnection;
+
+function sqlstr(x) {
+	switch (typeof x) {
+		case 'string':
+			return "'"+addslashes(x)+"'";
+		case 'number':
+			return x.toString();
+		case 'object':
+			if (x.constructor === Date) {
+				return "'"
+					+x.getFullYear()
+					+'-'
+					+(x.getMonth()+1)
+					+'-'
+					+x.getDate()
+					+' '
+					+x.getHours()
+					+':'
+					+x.getMinutes()
+					+':'
+					+x.getSeconds()
+					+"'"
+			} else {
+				throw Error('sqlstr: unsupported type "object"');
+			}
+		default:
+			throw Error('sqlstr: unknown type: '+typeof x);
+	}
+}
