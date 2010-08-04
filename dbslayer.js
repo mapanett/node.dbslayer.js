@@ -32,7 +32,7 @@ DBSlayerConnection.prototype.executeQuery = function(args) {
 	} else if (opt.insert_into) {
 		this.executeInsert(opt.insert_into, opt.values, callback);
 	} else if (opt.update) {
-		// TODO
+      this.executeUpdate(opt.update, opt.values, opt.where, callback); 
 	} else if (opt['delete']) {
 		// TODO
 	} else {
@@ -82,6 +82,35 @@ DBSlayerConnection.prototype.executeInsert = function(insert_into, values, callb
 	
 	//sys.log('^^generatedQuery: '+generatedQuery);
 	this.fetch(generatedQuery, typeof callback === 'function' ? callback : function(){});
+}
+
+DBSlayerConnection.prototype.executeUpdate = function(update_table, 
+                                                      values, 
+                                                      condition,
+                                                      callback) {
+	var generatedQuery = this.db ? 'use ' + this.db + ';' : '',
+		 setFragments = [],
+       conditionFragment = "";
+	
+	for (var columnName in values) {
+		if (values.hasOwnProperty(columnName)) {
+         setFragments.push(columnName + ' = ' + sqlstr(values[columnName]));
+		}
+	}
+
+   if ( condition ) {
+      conditionFragment = "where " + condition;
+   }
+	
+	generatedQuery
+		+= 'update ' + update_table 
+         + ' set ' 
+         + setFragments.join(', ')
+         + conditionFragment + ";";
+	
+	sys.log('^^update generatedQuery: '+generatedQuery);
+	this.fetch(generatedQuery, 
+              typeof callback === 'function' ? callback : function(){});
 }
 
 function addslashes(str) {
