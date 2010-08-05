@@ -1,4 +1,4 @@
-//  dbslayer.js 1.0d1
+//  dbslayer.js 1.0d2
 //      Copyright (c) 2010 Jonathan 'Wolf' Rentzsch: <http://rentzsch.com>
 //      Some rights reserved: <http://opensource.org/licenses/mit-license.php>
 //      
