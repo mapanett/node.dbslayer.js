@@ -3,7 +3,7 @@
 //      Some rights reserved: <http://opensource.org/licenses/mit-license.php>
 //      
 //  Interface to DBSlayer for node.js.
-//	Original codebase by [Guillermo Rauch](http://devthought.com)
+//  Original codebase by [Guillermo Rauch](http://devthought.com)
 
 var sys = require('sys'),
 	http = require('http');
@@ -32,7 +32,7 @@ DBSlayerConnection.prototype.executeQuery = function(args) {
 	} else if (opt.insert_into) {
 		this.executeInsert(opt.insert_into, opt.values, callback);
 	} else if (opt.update) {
-      this.executeUpdate(opt.update, opt.values, opt.where, callback); 
+		this.executeUpdate(opt.update, opt.values, opt.where, callback); 
 	} else if (opt['delete']) {
 		// TODO
 	} else {
@@ -84,33 +84,30 @@ DBSlayerConnection.prototype.executeInsert = function(insert_into, values, callb
 	this.fetch(generatedQuery, typeof callback === 'function' ? callback : function(){});
 }
 
-DBSlayerConnection.prototype.executeUpdate = function(update_table, 
-                                                      values, 
-                                                      condition,
-                                                      callback) {
+DBSlayerConnection.prototype.executeUpdate = function(update_table, values, condition, callback) {
 	var generatedQuery = this.db ? 'use ' + this.db + ';' : '',
 		 setFragments = [],
-       conditionFragment = "";
+		 conditionFragment = "";
 	
 	for (var columnName in values) {
 		if (values.hasOwnProperty(columnName)) {
-         setFragments.push(columnName + ' = ' + sqlstr(values[columnName]));
+			setFragments.push(columnName + ' = ' + sqlstr(values[columnName]));
 		}
 	}
-
-   if ( condition ) {
-      conditionFragment = "where " + condition;
-   }
+	
+	if (condition) {
+		conditionFragment = "where " + condition;
+	}
 	
 	generatedQuery
-		+= 'update ' + update_table 
-         + ' set ' 
-         + setFragments.join(', ')
-         + conditionFragment + ";";
+		+= 'update ' + update_table
+		+ ' set '
+		+ setFragments.join(', ')
+		+ conditionFragment + ";";
 	
 	sys.log('^^update generatedQuery: '+generatedQuery);
-	this.fetch(generatedQuery, 
-              typeof callback === 'function' ? callback : function(){});
+	this.fetch(generatedQuery,
+		typeof callback === 'function' ? callback : function(){});
 }
 
 function addslashes(str) {
