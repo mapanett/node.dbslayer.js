@@ -48,7 +48,7 @@ DBSlayerConnection.prototype.executeSelect = function(columns, tables, condition
 	if (condition) {
 		// FIXME this will fail when a placeholderArg contains a question mark.
 		while (condition.indexOf('?') !== -1) {
-			condition = condition.replace(/\?/, "'" + addslashes(placeholderArgs.shift()) + "'");
+			condition = condition.replace(/\?/, sqlstr(placeholderArgs.shift()));
 		}
 		generatedQuery += ' where ' + condition;
 	}
