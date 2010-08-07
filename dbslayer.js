@@ -197,7 +197,9 @@ function sqlstr(x) {
 		case 'number':
 			return x.toString();
 		case 'object':
-			if (x.constructor === Date) {
+			if (x === null) {
+				return 'NULL';
+			} else if (x.constructor === Date) {
 				return "'"
 					+x.getFullYear()
 					+'-'
@@ -214,6 +216,9 @@ function sqlstr(x) {
 			} else {
 				throw Error('sqlstr: unsupported type "object"');
 			}
+		case 'boolean':
+			return x === true ? '1' : '0';
+			break;
 		default:
 			throw Error('sqlstr: unknown type: '+typeof x);
 	}
