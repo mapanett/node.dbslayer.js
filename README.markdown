@@ -4,7 +4,7 @@ Is my (@rentzsch's) accidental rewrite of Guillermo Rauch's project. It does the
 
 ## WARNING: Not Done
 
-I still need to add support for verbs like `insert`, `update` and `delete`. Pull requests welcome if you beat me to the punch.
+I still need to add support for verbs like `delete`. Pull requests welcome if you beat me to the punch.
 
 ## Basic Usage Example
 
