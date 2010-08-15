@@ -6,7 +6,8 @@
 //  Original codebase by [Guillermo Rauch](http://devthought.com)
 
 var sys = require('sys'),
-	http = require('http');
+	http = require('http'),
+	utils = require('./lib/dbslayer_utils');
 
 function DBSlayerConnection(opts) {
 	this.host = opts['host'] || 'localhost';
@@ -49,7 +50,7 @@ DBSlayerConnection.prototype.executeSelect = function(columns, tables, condition
 	if (condition) {
 		// FIXME this will fail when a placeholderArg contains a question mark.
 		while (condition.indexOf('?') !== -1) {
-			condition = condition.replace(/\?/, sqlstr(placeholderArgs.shift()));
+			condition = condition.replace(/\?/, utils.sqlStr(placeholderArgs.shift()));
 		}
 		generatedQuery += ' where ' + condition;
 	}
@@ -68,7 +69,7 @@ DBSlayerConnection.prototype.executeInsert = function(insert_into, values, callb
 	for (var columnName in values) {
 		if (values.hasOwnProperty(columnName)) {
 			columnNames.push(columnName);
-			rowValues.push(sqlstr(values[columnName]));
+			rowValues.push(utils.sqlStr(values[columnName]));
 		}
 	}
 	
@@ -92,14 +93,14 @@ DBSlayerConnection.prototype.executeUpdate = function(update_table, values, cond
 	
 	for (var columnName in values) {
 		if (values.hasOwnProperty(columnName)) {
-			setFragments.push(columnName + ' = ' + sqlstr(values[columnName]));
+			setFragments.push(columnName + ' = ' + utils.sqlStr(values[columnName]));
 		}
 	}
 	
 	if (condition) {
 		// FIXME this will fail when a placeholderArg contains a question mark.
 		while (condition.indexOf('?') !== -1) {
-			condition = condition.replace(/\?/, sqlstr(placeholderArgs.shift()));
+			condition = condition.replace(/\?/, utils.sqlStr(placeholderArgs.shift()));
 		}
 		conditionFragment = ' where ' + condition;
 	}
@@ -113,11 +114,6 @@ DBSlayerConnection.prototype.executeUpdate = function(update_table, values, cond
 	//sys.log('^^update generatedQuery: '+generatedQuery);
 	this.fetch(generatedQuery,
 		typeof callback === 'function' ? callback : function(){});
-}
-
-function addslashes(str) {
-	// Backslash-escape single quotes, double quotes and backslash. Morph 0x00 into \0.
-	return str.replace(/(['"\\])/g,'\\$1').replace(/\x00/g, '\\0');
 }
 
 DBSlayerConnection.prototype.fetch = function(queryString, callback) {
@@ -195,36 +191,5 @@ exports.connect = function(opts) {
 }
 exports.DBSlayerConnection = DBSlayerConnection;
 
-function sqlstr(x) {
-	switch (typeof x) {
-		case 'string':
-			return "'"+addslashes(x)+"'";
-		case 'number':
-			return x.toString();
-		case 'object':
-			if (x === null) {
-				return 'NULL';
-			} else if (x.constructor === Date) {
-				return "'"
-					+x.getFullYear()
-					+'-'
-					+(x.getMonth()+1)
-					+'-'
-					+x.getDate()
-					+' '
-					+x.getHours()
-					+':'
-					+x.getMinutes()
-					+':'
-					+x.getSeconds()
-					+"'"
-			} else {
-				throw Error('sqlstr: unsupported type "object"');
-			}
-		case 'boolean':
-			return x === true ? '1' : '0';
-			break;
-		default:
-			throw Error('sqlstr: unknown type: '+typeof x);
-	}
-}
+   
+// vim: set noet
