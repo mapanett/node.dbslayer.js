@@ -47,5 +47,22 @@ exports.testAddSlashes = function(test) {
 	test.equals("\\\"\\\\\\\"", utils.addSlashes("\"\\\""));
 	test.done();
 };
-		
+
+
+exports.testReplacePlaceHolders = function(test) {
+	test.equals("col1 = 'val1'", 
+					utils.replacePlaceholders("col1 = ?", ["val1"]),
+					"replaces one place holder");
+	
+	test.equals("col1 = 'val1', col2 = '?????'", 
+					utils.replacePlaceholders("col1 = ?, col2 = ?", 
+														["val1", "?????"]),
+					"replaces one place holder");
+
+	test.done();
+
+};
+
+
+
 // vim: set noet
