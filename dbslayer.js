@@ -8,6 +8,7 @@
 var sys = require('sys'),
 	http = require('http'),
 	utils = require('./lib/dbslayer_utils');
+	helper = require('./lib/sql_helper');
 
 function DBSlayerConnection(opts) {
 	this.host = opts['host'] || 'localhost';
@@ -25,95 +26,33 @@ function DBSlayerConnection(opts) {
 DBSlayerConnection.prototype.executeQuery = function(args) {
 	var opt = args[0],
 		callback = args[args.length-1],
-		placeholderArgs;
+		placeholderArgs,
+		query = [];
+
+	if ( this.db ) {
+		query.push('use ' + this.db);
+	}
 	
 	if (opt.select) {
 		placeholderArgs = Array.prototype.slice.call(args, 1, -1);
-		this.executeSelect(opt.select, opt.from, opt.where, placeholderArgs, callback);
+		query.push(helper.generateSelect(opt.select, opt.from, 
+													opt.where, placeholderArgs));
+		
 	} else if (opt.insert_into) {
-		this.executeInsert(opt.insert_into, opt.values, callback);
+		query.push(helper.generateInsert(opt.insert_into, opt.values));
+
 	} else if (opt.update) {
 		placeholderArgs = Array.prototype.slice.call(args, 1, -1);
-		this.executeUpdate(opt.update, opt.values, opt.where, placeholderArgs, callback); 
+		query.push(helper.generateUpdate(opt.update, opt.values, 
+													opt.where, placeholderArgs));
 	} else if (opt['delete']) {
 		// TODO
+		throw Error('dbslayer.js: delete not implemented');
 	} else {
-		sys.log('dbslayer.js: unknown verb (' + JSON.stringify(opt) + ')');
+		throw Error('dbslayer.js: unknown verb (' + JSON.stringify(opt) + ')');
 	}
-}
-
-DBSlayerConnection.prototype.executeSelect = function(columns, tables, condition, placeholderArgs, callback) {
-	var generatedQuery = this.db ? 'use ' + this.db + ';' : '';
-	
-	generatedQuery += 'select ' + columns + ' from ' + tables;
-	
-	if (condition) {
-		// FIXME this will fail when a placeholderArg contains a question mark.
-		while (condition.indexOf('?') !== -1) {
-			condition = condition.replace(/\?/, utils.sqlStr(placeholderArgs.shift()));
-		}
-		generatedQuery += ' where ' + condition;
-	}
-	
-	generatedQuery += ';';
-	
-	//sys.log('^^select generatedQuery: '+generatedQuery);
-	this.fetch(generatedQuery, callback);
-}
-
-DBSlayerConnection.prototype.executeInsert = function(insert_into, values, callback) {
-	var generatedQuery = this.db ? 'use ' + this.db + ';' : '',
-		columnNames = [],
-		rowValues = [];
-	
-	for (var columnName in values) {
-		if (values.hasOwnProperty(columnName)) {
-			columnNames.push(columnName);
-			rowValues.push(utils.sqlStr(values[columnName]));
-		}
-	}
-	
-	generatedQuery
-		+= 'insert into '
-		+ insert_into
-		+ ' ('
-		+ columnNames.join(', ')
-		+ ') values ('
-		+ rowValues.join(', ')
-		+ ');';
-	
-	//sys.log('^^insert generatedQuery: '+generatedQuery);
-	this.fetch(generatedQuery, typeof callback === 'function' ? callback : function(){});
-}
-
-DBSlayerConnection.prototype.executeUpdate = function(update_table, values, condition, placeholderArgs, callback) {
-	var generatedQuery = this.db ? 'use ' + this.db + ';' : '',
-		 setFragments = [],
-		 conditionFragment = '';
-	
-	for (var columnName in values) {
-		if (values.hasOwnProperty(columnName)) {
-			setFragments.push(columnName + ' = ' + utils.sqlStr(values[columnName]));
-		}
-	}
-	
-	if (condition) {
-		// FIXME this will fail when a placeholderArg contains a question mark.
-		while (condition.indexOf('?') !== -1) {
-			condition = condition.replace(/\?/, utils.sqlStr(placeholderArgs.shift()));
-		}
-		conditionFragment = ' where ' + condition;
-	}
-	
-	generatedQuery
-		+= 'update ' + update_table
-		+ ' set '
-		+ setFragments.join(', ')
-		+ conditionFragment + ";";
-	
-	//sys.log('^^update generatedQuery: '+generatedQuery);
-	this.fetch(generatedQuery,
-		typeof callback === 'function' ? callback : function(){});
+		
+	this.fetch(query.join(";"), callback);
 }
 
 DBSlayerConnection.prototype.fetch = function(queryString, callback) {

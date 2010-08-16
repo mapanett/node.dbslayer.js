@@ -3,8 +3,8 @@ var utils = require('dbslayer_utils');
 // Should return the string with quotes
 exports.testSqlStrWithString = function(test) {
 	test.expect(2);
-	test.ok("'test'" == utils.sqlStr("test"), "Adds quotes");
-   test.ok("'\\'test\\''" == utils.sqlStr("'test'"), "Adds slashes");
+	test.equals("'test'", utils.sqlStr("test"), "Adds quotes");
+   test.equals("'\\'test\\''", utils.sqlStr("'test'"), "Adds slashes");
 	test.done();
 };
 
@@ -20,8 +20,8 @@ exports.testSqlStrWithNULL = function(test) {
 
 exports.testSqlStrWithDates = function(test) {
 	// MySQL accepts format without zero padding.
-	test.ok("'2010-10-8 7:6:5'" === utils.sqlStr(new Date(2010, 9, 8, 7, 6, 5)), 
-			  "Converts date to string");
+	test.equals("'2010-10-8 7:6:5'", utils.sqlStr(new Date(2010, 9, 8, 7, 6, 5)), 
+			  		"Converts date to string");
 	test.done();
 };
 
@@ -43,8 +43,8 @@ exports.testSqlStrWithObject = function(test) {
 
 exports.testAddSlashes = function(test) {
 	test.expect(2);
-	test.ok("\\'\\0\\'" == utils.addSlashes("'\0'"));
-	test.ok("\\\"\\\\\\\"" == utils.addSlashes("\"\\\""));
+	test.equals("\\'\\0\\'", utils.addSlashes("'\0'"));
+	test.equals("\\\"\\\\\\\"", utils.addSlashes("\"\\\""));
 	test.done();
 };
 		
